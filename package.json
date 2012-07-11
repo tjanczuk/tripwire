@@ -25,6 +25,6 @@
     "url" : "http://github.com/tjanczuk/tripwire/issues"
   },
   "scripts": {
-    "preinstall": "node checkplatform.js"
+    "install": "node checkplatform.js"
   }
 }
