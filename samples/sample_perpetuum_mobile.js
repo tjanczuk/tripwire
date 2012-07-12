@@ -21,7 +21,7 @@ process.on('uncaughtException', function (e) {
 // because the setInterval callbacks will no longer be executing. 
 tripwire.resetTripwire(2000);
 setInterval(function () { 
-	resetTripwire.resetTripwire(2000);
+	tripwire.resetTripwire(2000);
 }, 1000);
 
 // Now go execute any amount of untusted callbacks; one of them is evil
