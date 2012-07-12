@@ -10,12 +10,20 @@ var untrustedCode = function () {
 process.on('uncaughtException', function (e) {
 	// This code will execute so you can do some logging. 
 	// Note that untrusted code should be prevented from registring to this event.
-	console.log('[Albert] Sorry Malcolm, but you overstayed your welcome.');
+
+	// If tripwire caused this exception, tripwire.getContext() will return the 
+	// context object passed to tripwire.resetTripwire.
+
+	var context = tripwire.getContext();
+	if (context)
+		console.log('[Albert] Sorry ' + context.codeOwner + ', but you overstayed your welcome.');
+
 	process.exit(1);
 });
 
 // Terminate the process if the even loop is not responding within 2-4 seconds
-tripwire.resetTripwire(2000);
+var context = { codeOwner: 'Malcolm' };
+tripwire.resetTripwire(2000, context);
 
 // Now execute some untusted code
 untrustedCode();

@@ -31,6 +31,24 @@ while(true);
 tripwire.clearTripwire();
 ```
 
+When the event loop is blocked for longer than the time specified in the call to `resetTripwire`, tripwire will terminate execution of the script. Node.js will subsequently execute the `uncaughtException` handler if one is registered. The exception passed to `uncaughtException` handler will be `null` in that case. In order to determine whether the exception was indeed caused by tripwire, an optional context can be established during a call to `resetTripwire` and retrtieved with a call to `getContext`. The `getContext` will return `undefined` if the tripwire had not been triggered. 
+
+```javascript
+var tripwire = require('tripwire');
+
+process.on('uncaughtException', function (e) {
+  if (undefined === tripwire.getContext())
+    console.log('The exception was not caused by tripwire.');
+  else
+    console.log('The event loop was blocked for longer than 2000 milliseconds');
+  process.exit(1);
+});
+
+// set the limit of execution time to 2000 milliseconds
+var context = { someData: "foobar" };
+tripwire.resetTripwire(2000, context);
+```
+
 For more samples, see [here](https://github.com/tjanczuk/tripwire/tree/master/samples).
 
 #### Running tests

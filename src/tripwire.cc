@@ -8,6 +8,8 @@ HANDLE scriptThread;
 DWORD tripwireThreshold;
 HANDLE tripwireThread;
 HANDLE event;
+Persistent<Value> context;
+BOOL terminated;
 
 void tripwireWorker(void* data)
 {
@@ -68,19 +70,41 @@ void tripwireWorker(void* data)
 				// (tripwireThreshold, 2 * tripwireThreshold) range of CPU utilization.
 
 				if (elapsedMs >= tripwireThreshold)
+				{
+					terminated = TRUE;
 					V8::TerminateExecution();
+				}
 				else
+				{
 					skipTimeCapture = TRUE;
+				}
 			}
 		}
 	}
+}
+
+Handle<Value> clearTripwire(const Arguments& args) 
+{
+    HandleScope scope;
+
+    // Seting tripwireThreshold to 0 indicates to the worker process that
+    // there is no threshold to enforce. The worker process will make this determination
+    // next time it is signalled, there is no need to force an extra context switch here
+    // by explicit signalling. 
+
+	tripwireThreshold = 0;
+	terminated = FALSE;
+	context.Dispose();
+	context.Clear();
+
+    return Undefined();
 }
 
 Handle<Value> resetTripwire(const Arguments& args)
 {
     HandleScope scope;
 
-	if (1 != args.Length() || !args[0]->IsUint32())
+	if (0 == args.Length() || !args[0]->IsUint32())
 		return ThrowException(Exception::Error(String::New(
 			"First agument must be an integer time threshold in milliseconds.")));
 
@@ -88,7 +112,13 @@ Handle<Value> resetTripwire(const Arguments& args)
 		return ThrowException(Exception::Error(String::New(
 			"The time threshold for blocking operations must be greater than 0.")));
 
+	clearTripwire(args);
+
 	tripwireThreshold = args[0]->ToUint32()->Value();
+	if (args.Length() > 1) 
+	{
+		context = Persistent<Value>::New(args[1]);
+	}
 
     if (NULL == tripwireThread) 
     {
@@ -141,25 +171,27 @@ Handle<Value> resetTripwire(const Arguments& args)
     return Undefined();
 }
 
-Handle<Value> clearTripwire(const Arguments& args) 
+Handle<Value> getContext(const Arguments& args) 
 {
     HandleScope scope;
 
-    // Seting tripwireThreshold to 0 indicates to the worker process that
-    // there is no threshold to enforce. The worker process will make this determination
-    // next time it is signalled, there is no need to force an extra context switch here
-    // by explicit signalling. 
+    // If the script had been terminated by tripwire, returns the context passed to resetTripwire;
+    // otherwise undefined. This can be used from within the uncaughtException handler to determine
+    // whether the exception condition was caused by script termination.
 
-	tripwireThreshold = 0;
-
-    return Undefined();
+    if (terminated)
+    	return context;
+    else
+    	return Undefined();
 }
 
 void init(Handle<Object> target) 
 {
   	tripwireThread = scriptThread = event = NULL;
+  	terminated = FALSE;
     NODE_SET_METHOD(target, "resetTripwire", resetTripwire);
     NODE_SET_METHOD(target, "clearTripwire", clearTripwire);
+    NODE_SET_METHOD(target, "getContext", getContext);
 }
 
 NODE_MODULE(tripwire, init);
