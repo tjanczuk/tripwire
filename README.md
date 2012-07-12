@@ -31,4 +31,23 @@ while(true);
 tripwire.clearTripwire();
 ```
 
-For more samples, see [here](https://github.com/tjanczuk/tripwire/tree/master/test).
+For more samples, see [here](https://github.com/tjanczuk/tripwire/tree/master/samples).
+
+#### Running tests
+
+There are a few mocha tests included that you can run with
+
+```
+mocha -R List
+```
+
+#### Building
+
+The native component is included in the repository and not built during `npm install tripwire`.
+
+You can rebuild the native component using [node-gyp](https://github.com/TooTallNate/node-gyp/). Currently the native component can be compiled on Windows only (I do take contributions).
+
+```
+node-gyp configure build
+copy build\Release\tripwire.node lib\native\windows\x86\
+```
