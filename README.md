@@ -3,7 +3,7 @@ Tripwire
 
 Tripwire allows node.js applications to termiante execution of scripts that block the node.js event loop. For example, you can break out from infinite loops like `while(true)`. This functionality is useful if you are executing untrusted code within your node.js process. 
 
-Tripwire contains a native extension of node.js and currently only supports Windows. I do take contributions. 
+Tripwire contains a native extension of node.js and currently only supports Mac and Windows. I do take contributions. 
 
 Install with:
 
@@ -63,9 +63,18 @@ mocha -R List
 
 The native component is included in the repository and not built during `npm install tripwire`.
 
-You can rebuild the native component using [node-gyp](https://github.com/TooTallNate/node-gyp/). Currently the native component can be compiled on Windows only (I do take contributions).
+You can rebuild the native component using [node-gyp](https://github.com/TooTallNate/node-gyp/). Currently the native component can be compiled on Mac and Windows only (I do take contributions).
+
+On Windows:
 
 ```
 node-gyp configure build
 copy build\Release\tripwire.node lib\native\windows\x86\
+```
+
+On Mac:
+
+```
+node-gyp configure build
+cp build\Release\tripwire.node lib\native\darwin\x86\
 ```
