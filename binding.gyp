@@ -15,7 +15,12 @@
       	  'sources+': [
       	    'src/tripwire_mac.cc'
       	  ]
-      	}]
+      	}],
+        ['OS=="linux"', {
+          'sources+': [
+            'src/tripwire_linux.cc'
+          ]
+        }]
       ]
     }
   ]
