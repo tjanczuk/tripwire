@@ -5,7 +5,7 @@
     "url": "http://tomasz.janczuk.org",
     "twitter": "tjanczuk"
   },
-  "version": "0.6.0",
+  "version": "0.7.0-pre",
   "description": "Break out from scripts blocking node.js event loop",
   "tags" : ["event loop", "hang"],
   "main": "./lib/tripwire.js",
