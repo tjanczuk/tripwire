@@ -3,7 +3,7 @@ var tripwire = require('../lib/tripwire.js')
 
 var validator;
 
-process.on('uncaughtException', function (e) {
+var uncaught = function (e) {
 	if (validator) {
 		var tmp = validator;
 		validator = undefined;
@@ -12,9 +12,14 @@ process.on('uncaughtException', function (e) {
 	else {
 		console.log('Unexpected uncaughtException event.');
 	}
-});
+};
 
 describe('tripwire', function () {
+
+	beforeEach(function () {
+		process.removeAllListeners('uncaughtException');
+		process.on('uncaughtException', uncaught);	
+	});
 
 	it('terminates infinite loop', function (done) {
 		validator = done;
@@ -23,14 +28,14 @@ describe('tripwire', function () {
 	});
 
 	it('can be cleared', function (done) {
-		validator = function () {
-			validator = undefined;
-			assert.ok(false, 'tripire unexpectedly went off');
-		};
-
-		tripwire.resetTripwire(50);
+		var error = false;
+		validator = function () { error = true; }
+		tripwire.resetTripwire(100);
 		tripwire.clearTripwire();
-		setTimeout(done, 100);
+		var now = new Date();
+		while ((new Date() - now) < 1000 && !error);
+		assert.ok(!error);
+		done();
 	});
 
 	it('can be reset', function (done) {
