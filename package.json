@@ -9,13 +9,8 @@
   "description": "Break out from scripts blocking node.js event loop",
   "tags" : ["event loop", "hang"],
   "main": "./lib/tripwire.js",
-  "engines": { "node": "0.6.x || 0.8.x" },
+  "engines": { "node": "0.6.x || 0.8.x || 0.10.x" },
   "licenses": [ { "type": "Apache", "url": "http://www.apache.org/licenses/LICENSE-2.0" } ],
-  "dependencies": {
-  },
-  "devDependencies": {
-    "mocha": "1.2.0"
-  },
   "homepage": "https://github.com/tjanczuk/tripwire",
   "repository": {
     "type": "git",
