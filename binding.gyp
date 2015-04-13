@@ -2,6 +2,9 @@
   'targets': [
     {
       'target_name': 'tripwire',
+      'include_dirs' : [
+          "<!(node -e \"require('nan')\")"
+      ],
       'sources': [ 
       	'src/tripwire.cc'
       ],

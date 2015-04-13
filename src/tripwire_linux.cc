@@ -4,6 +4,7 @@
 #include <sys/time.h>
 #include <node.h>
 #include <v8.h>
+#include <nan.h>
 
 using namespace v8;
 

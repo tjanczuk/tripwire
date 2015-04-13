@@ -1,5 +1,6 @@
 #include <node.h>
 #include <v8.h>
+#include <nan.h>
 
 using namespace v8;
 
@@ -9,10 +10,18 @@ extern void initCore();
 unsigned int tripwireThreshold;
 Persistent<Value> context;
 int terminated;
+v8::Isolate* isolate;
 
-Handle<Value> clearTripwire(const Arguments& args) 
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+void interruptCallback(Isolate* isolate, void* data) 
 {
-    HandleScope scope;
+    NanThrowError(NanNew<v8::String>("Blocked event loop."));
+}
+#endif
+
+NAN_METHOD(clearTripwire)
+{
+    NanEscapableScope();
 
     // Seting tripwireThreshold to 0 indicates to the worker process that
     // there is no threshold to enforce. The worker process will make this determination
@@ -21,52 +30,55 @@ Handle<Value> clearTripwire(const Arguments& args)
 
 	tripwireThreshold = 0;
 	terminated = 0;
-	context.Dispose();
-	context.Clear();
-
-    return Undefined();
+    NanDisposePersistent(context);
+    NanReturnValue(NanUndefined());
 }
 
-Handle<Value> resetTripwire(const Arguments& args)
+NAN_METHOD(resetTripwire)
 {
-    HandleScope scope;
+    NanEscapableScope();
+	if (0 == args.Length() || !args[0]->IsUint32()) {
+        NanThrowError(NanNew<v8::String>(
+            "First agument must be an integer time threshold in milliseconds."));
+        NanReturnUndefined();
+    }
+    else if (0 == args[0]->ToUint32()->Value()) {
+        NanThrowError(NanNew<v8::String>(
+            "The time threshold for blocking operations must be greater than 0."));
+        NanReturnUndefined();
+    }
+    else {
+    	clearTripwire(args);
 
-	if (0 == args.Length() || !args[0]->IsUint32())
-		return ThrowException(Exception::Error(String::New(
-			"First agument must be an integer time threshold in milliseconds.")));
+    	tripwireThreshold = args[0]->ToUint32()->Value();
+        isolate = args.GetIsolate();
+    	if (args.Length() > 1) 
+    	{
+            NanAssignPersistent(context, args[1]);
+    	}
 
-	if (0 == args[0]->ToUint32()->Value())
-		return ThrowException(Exception::Error(String::New(
-			"The time threshold for blocking operations must be greater than 0.")));
-
-	clearTripwire(args);
-
-	tripwireThreshold = args[0]->ToUint32()->Value();
-	if (args.Length() > 1) 
-	{
-		context = Persistent<Value>::New(args[1]);
-	}
-
-	return resetTripwireCore();
+        NanReturnValue(resetTripwireCore());
+    }
 }
 
-Handle<Value> getContext(const Arguments& args) 
+NAN_METHOD(getContext)
 {
-    HandleScope scope;
+    NanEscapableScope();
 
     // If the script had been terminated by tripwire, returns the context passed to resetTripwire;
     // otherwise undefined. This can be used from within the uncaughtException handler to determine
     // whether the exception condition was caused by script termination.
 
     if (terminated)
-    	return context;
+    	NanReturnValue(NanNew(context));
     else
-    	return Undefined();
+    	NanReturnValue(NanUndefined());
 }
 
 void init(Handle<Object> target) 
 {
 	initCore();
+    isolate = v8::Isolate::GetCurrent();
   	terminated = 0;
     NODE_SET_METHOD(target, "resetTripwire", resetTripwire);
     NODE_SET_METHOD(target, "clearTripwire", clearTripwire);

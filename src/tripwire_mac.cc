@@ -3,6 +3,7 @@
 #include <time.h>
 #include <node.h>
 #include <v8.h>
+#include <nan.h>
 
 using namespace v8;
 
@@ -12,6 +13,11 @@ pthread_cond_t tripwireCondition = PTHREAD_COND_INITIALIZER;
 
 extern unsigned int tripwireThreshold;
 extern int terminated;
+extern v8::Isolate* isolate;
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+extern void interruptCallback(Isolate *isolate, void *data);
+#endif
+
 
 void* tripwireWorker(void* data)
 {
@@ -87,11 +93,13 @@ void* tripwireWorker(void* data)
 				// the V8 process. Otherwise wait again while maintaining the current snapshot of the initial
 				// time utilization. This mechanism results in termination of a runaway thread some time in the
 				// (tripwireThreshold, 2 * tripwireThreshold) range of CPU utilization.
-
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-					V8::TerminateExecution();
+					V8::TerminateExecution(isolate);
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+                    isolate->RequestInterrupt(interruptCallback, NULL);
+#endif
 				}
 				else
 				{
@@ -106,7 +114,7 @@ void* tripwireWorker(void* data)
 
 Handle<Value> resetTripwireCore()
 {
-    HandleScope scope;
+    NanEscapableScope();
 
     if (NULL == tripwireThread) 
     {
@@ -115,7 +123,7 @@ Handle<Value> resetTripwireCore()
 
     	if (0 != pthread_create(&tripwireThread, NULL, tripwireWorker, NULL))
     	{
-    		return ThrowException(Exception::Error(String::New("Unable to initialize a tripwire thread.")));
+            NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
     	}
     }
     else 
@@ -129,10 +137,11 @@ Handle<Value> resetTripwireCore()
     	pthread_mutex_unlock(&tripwireMutex);
     }
 
-    return Undefined();
+    return NanEscapeScope(NanUndefined());
 }
 
 void initCore() 
 {
+    isolate = v8::Isolate::GetCurrent();
 	tripwireThread = NULL;
 }
