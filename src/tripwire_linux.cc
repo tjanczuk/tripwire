@@ -14,6 +14,11 @@ pthread_cond_t tripwireCondition = PTHREAD_COND_INITIALIZER;
 
 extern unsigned int tripwireThreshold;
 extern int terminated;
+extern v8::Isolate* isolate;
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+extern void interruptCallback(Isolate *isolate, void *data);
+#endif
+
 
 void* tripwireWorker(void* data)
 {
@@ -94,7 +99,10 @@ void* tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-					V8::TerminateExecution();
+                    V8::TerminateExecution(isolate);
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+                    isolate->RequestInterrupt(interruptCallback, NULL);
+#endif
 				}
 				else
 				{
@@ -109,7 +117,7 @@ void* tripwireWorker(void* data)
 
 Handle<Value> resetTripwireCore()
 {
-    HandleScope scope;
+    NanEscapableScope();
 
     if (0 == tripwireThread) 
     {
@@ -118,7 +126,7 @@ Handle<Value> resetTripwireCore()
 
     	if (0 != pthread_create(&tripwireThread, NULL, tripwireWorker, NULL))
     	{
-    		return ThrowException(Exception::Error(String::New("Unable to initialize a tripwire thread.")));
+    		NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
     	}
     }
     else 
@@ -132,7 +140,7 @@ Handle<Value> resetTripwireCore()
     	pthread_mutex_unlock(&tripwireMutex);
     }
 
-    return Undefined();
+    return NanEscapeScope(NanUndefined());
 }
 
 void initCore() 
