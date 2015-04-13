@@ -11,6 +11,11 @@ HANDLE event;
 
 extern unsigned int tripwireThreshold;
 extern int terminated;
+extern v8::Isolate* isolate;
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+extern void interruptCallback(Isolate *isolate, void *data);
+#endif
+
 
 void tripwireWorker(void* data)
 {
@@ -73,7 +78,10 @@ void tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-					V8::TerminateExecution();
+                    V8::TerminateExecution(isolate);
+#if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
+                    isolate->RequestInterrupt(interruptCallback, NULL);
+#endif
 				}
 				else
 				{
@@ -86,7 +94,7 @@ void tripwireWorker(void* data)
 
 Handle<Value> resetTripwireCore()
 {
-    HandleScope scope;
+    NanEscapableScope();
 
     if (NULL == tripwireThread) 
     {
@@ -96,7 +104,9 @@ Handle<Value> resetTripwireCore()
     	// of the tripwireThreshold value to the worker thread. 
 
     	if (NULL == (event = CreateEvent(NULL, FALSE, FALSE, NULL)))
-    		return ThrowException(Exception::Error(String::New("Unable to create waitable event.")));
+    	{
+    		NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
+    	}
 
     	// Capture the current thread handle as the thread on which node.js executes user code. The
     	// worker process measures the CPU utilization of this thread to determine if the execution time
@@ -113,7 +123,7 @@ Handle<Value> resetTripwireCore()
     	{
     		CloseHandle(event);
     		event = NULL;
-       		return ThrowException(Exception::Error(String::New("Unable to duplicate handle of the script thread.")));
+    		NanThrowError(NanNew<v8::String>("Unable to duplicate handle of the script thread."));
     	}
 
     	// Create the worker thread.
@@ -124,7 +134,7 @@ Handle<Value> resetTripwireCore()
     		event = NULL;
       		CloseHandle(scriptThread);
       		scriptThread = 0;
-    		return ThrowException(Exception::Error(String::New("Unable to initialize a tripwire thread.")));
+      		NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
     	}
     }
     else 
@@ -136,7 +146,7 @@ Handle<Value> resetTripwireCore()
     	SetEvent(event);
     }
 
-    return Undefined();
+    return NanEscapeScope(NanUndefined());
 }
 
 void initCore() 
