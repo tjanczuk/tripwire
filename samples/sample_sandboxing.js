@@ -15,6 +15,7 @@ process.on('uncaughtException', function (e) {
 	// context object passed to tripwire.resetTripwire.
 
 	var context = tripwire.getContext();
+	console.log('IN U', context);
 	if (context)
 		console.log('[Albert] Sorry ' + context.codeOwner + ', but you overstayed your welcome.');
 

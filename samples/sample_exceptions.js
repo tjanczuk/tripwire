@@ -11,6 +11,9 @@ process.on('uncaughtException', function (e) {
 
 // Terminate the process if the even loop is not responding within 2-4 seconds
 tripwire.resetTripwire(2000);
+setInterval(function () { 
+	tripwire.resetTripwire(2000);
+}, 1000);
 
 try {
 	// Without tripwire, the following line of code would block the node.js
@@ -22,6 +25,7 @@ catch (e) {
 	// in uncaughtException handler.
 	console.log('Caught exception.');
 }
+
 
 // This line would normally clear the tripwire, but it will never be reached due to 
 // the infinite loop that preceeds it.
