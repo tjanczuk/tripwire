@@ -61,7 +61,9 @@ mocha -R list
 
 #### Building
 
-The native component is included in the repository and not built during `npm install tripwire`.
+On OSX and Linux, the native component is built at installation time.
+
+On Windows, the native component is included in the repository and not built during `npm install tripwire`.
 
 You can rebuild the native component using [node-gyp](https://github.com/TooTallNate/node-gyp/). Currently the native component can be compiled on Windows, Mac, and Linux (I do take contributions).
 
@@ -69,19 +71,5 @@ On Windows:
 
 ```
 node-gyp configure build
-copy build\Release\tripwire.node lib\native\windows\x86\
-```
-
-On Mac:
-
-```
-node-gyp configure build
-cp build\Release\tripwire.node lib\native\darwin\x86\
-```
-
-On Linux:
-
-```
-node-gyp configure build
-cp build\Release\tripwire.node lib\native\linux\x86\
+copy build\Release\tripwire.node lib\native\win32\4.0\ia32\
 ```
