@@ -3,8 +3,6 @@
 #include <v8.h>
 #include <nan.h>
 
-using namespace v8;
-
 HANDLE scriptThread;
 HANDLE tripwireThread;
 HANDLE event;
@@ -13,7 +11,7 @@ extern unsigned int tripwireThreshold;
 extern int terminated;
 extern v8::Isolate* isolate;
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
-extern void interruptCallback(Isolate *isolate, void *data);
+extern void interruptCallback(v8::Isolate *isolate, void *data);
 #endif
 
 
@@ -78,7 +76,7 @@ void tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-                    V8::TerminateExecution(isolate);
+                    v8::V8::TerminateExecution(isolate);
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
                     isolate->RequestInterrupt(interruptCallback, NULL);
 #endif
@@ -92,9 +90,9 @@ void tripwireWorker(void* data)
 	}
 }
 
-Handle<Value> resetTripwireCore()
+v8::Local<v8::Value> resetTripwireCore()
 {
-    NanEscapableScope();
+    Nan::EscapableHandleScope scope;
 
     if (NULL == tripwireThread) 
     {
@@ -105,7 +103,7 @@ Handle<Value> resetTripwireCore()
 
     	if (NULL == (event = CreateEvent(NULL, FALSE, FALSE, NULL)))
     	{
-    		NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
+    		Nan::ThrowError("Unable to initialize a tripwire thread.");
     	}
 
     	// Capture the current thread handle as the thread on which node.js executes user code. The
@@ -123,7 +121,7 @@ Handle<Value> resetTripwireCore()
     	{
     		CloseHandle(event);
     		event = NULL;
-    		NanThrowError(NanNew<v8::String>("Unable to duplicate handle of the script thread."));
+    		Nan::ThrowError("Unable to duplicate handle of the script thread.");
     	}
 
     	// Create the worker thread.
@@ -134,7 +132,7 @@ Handle<Value> resetTripwireCore()
     		event = NULL;
       		CloseHandle(scriptThread);
       		scriptThread = 0;
-      		NanThrowError(NanNew<v8::String>("Unable to initialize a tripwire thread."));
+      		Nan::ThrowError("Unable to initialize a tripwire thread.");
     	}
     }
     else 
@@ -146,7 +144,7 @@ Handle<Value> resetTripwireCore()
     	SetEvent(event);
     }
 
-    return NanEscapeScope(NanUndefined());
+    return scope.Escape(Nan::Undefined());
 }
 
 void initCore() 
