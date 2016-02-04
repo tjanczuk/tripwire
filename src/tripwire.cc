@@ -13,7 +13,9 @@ v8::Isolate* isolate;
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 void interruptCallback(v8::Isolate* isolate, void* data) 
 {
-    Nan::ThrowError("Blocked event loop.");
+    Nan::RunScript(Nan::CompileScript(Nan::New<v8::String>(
+        "process.nextTick(function () { throw new Error('Blocked event loop'); });"
+    ).ToLocalChecked()).ToLocalChecked());
 }
 #endif
 
