@@ -1,6 +1,2 @@
-if (process.platform !== 'win32') {
-    require('child_process').spawn('node-gyp', ['rebuild'], {
-        cwd: __dirname,
-        stdio: 'inherit'
-    }).on('close', process.exit).on('error', console.log);
-}
+var exec_process = require('child_process').exec("node-gyp configure build");
+exec_process.stdout.pipe(process.stdout)
