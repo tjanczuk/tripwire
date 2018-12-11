@@ -97,7 +97,7 @@ void* tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-                    v8::V8::TerminateExecution(isolate);
+                    isolate->TerminateExecution();
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
                     isolate->RequestInterrupt(interruptCallback, NULL);
 #endif
