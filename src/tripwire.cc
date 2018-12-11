@@ -35,18 +35,18 @@ NAN_METHOD(clearTripwire)
 NAN_METHOD(resetTripwire)
 {
     Nan::EscapableHandleScope scope;
-	if (0 == info.Length() || !info[0]->IsUint32()) {
+	if (0 == info.Length()  || !Nan::To<v8::Uint32>(info[0]).IsEmpty()) {
         Nan::ThrowError("First agument must be an integer time threshold in milliseconds.");
         info.GetReturnValue().SetUndefined();
     }
-    else if (0 == info[0]->ToUint32()->Value()) {
+    else if (0 == Nan::To<v8::Uint32>(info[0]).ToLocalChecked()->Value()) {
         Nan::ThrowError("The time threshold for blocking operations must be greater than 0.");
         info.GetReturnValue().SetUndefined();
     }
     else {
     	clearTripwire(info);
 
-    	tripwireThreshold = info[0]->ToUint32()->Value();
+    	tripwireThreshold = Nan::To<v8::Uint32>(info[0]).ToLocalChecked()->Value();
         isolate = info.GetIsolate();
     	if (info.Length() > 1) 
     	{
