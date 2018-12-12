@@ -35,7 +35,7 @@ NAN_METHOD(clearTripwire)
 NAN_METHOD(resetTripwire)
 {
     Nan::EscapableHandleScope scope;
-	if (0 == info.Length()  || !Nan::To<v8::Uint32>(info[0]).IsEmpty()) {
+	if (0 == info.Length()  || Nan::To<v8::Uint32>(info[0]).IsEmpty()) {
         Nan::ThrowError("First agument must be an integer time threshold in milliseconds.");
         info.GetReturnValue().SetUndefined();
     }
