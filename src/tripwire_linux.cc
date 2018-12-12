@@ -13,6 +13,9 @@ pthread_cond_t tripwireCondition = PTHREAD_COND_INITIALIZER;
 extern unsigned int tripwireThreshold;
 extern int terminated;
 extern v8::Isolate* isolate;
+
+extern bool shouldThrowException;
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 extern void interruptCallback(v8::Isolate *isolate, void *data);
 #endif
@@ -99,7 +102,10 @@ void* tripwireWorker(void* data)
 					terminated = 1;
                     isolate->TerminateExecution();
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
-                    isolate->RequestInterrupt(interruptCallback, NULL);
+					if(shouldThrowException)
+					{
+                    	isolate->RequestInterrupt(interruptCallback, NULL);
+					}
 #endif
 				}
 				else
