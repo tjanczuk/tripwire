@@ -110,6 +110,11 @@ NAN_METHOD(setTimeoutCallback)
     }
 }
 
+void cleanUpFunction(void*)
+{
+    timeoutCallback.Reset();
+}
+
 NAN_MODULE_INIT(init) 
 {
     initCore();
@@ -131,6 +136,8 @@ NAN_MODULE_INIT(init)
     Nan::Set(target,
         Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
+
+    node::AtExit(cleanUpFunction, NULL);
 }
 
 NODE_MODULE(tripwire, init);
