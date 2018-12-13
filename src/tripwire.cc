@@ -27,7 +27,7 @@ void interruptCallback(v8::Isolate* isolate, void* data)
 
 void timeoutCallbackCaller(v8::Isolate* isolate, void* data)
 {
-   timeoutCallback.Call(1, argv);
+   Nan::Call(timeoutCallback, 1, argv);
 }
 
 NAN_METHOD(clearTripwire)
