@@ -11,14 +11,24 @@ int terminated;
 v8::Isolate* isolate;
 bool shouldThrowException = true;
 
+bool hasTimeoutCallback = false;
+v8::Local<v8::Value> argv[] {Nan::Null()};
+Nan::Callback timeoutCallback;
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 void interruptCallback(v8::Isolate* isolate, void* data) 
 {
     Nan::RunScript(Nan::CompileScript(Nan::New<v8::String>(
         "process.nextTick(function () { throw new Error('Blocked event loop'); });"
-    ).ToLocalChecked()).ToLocalChecked());
+        ).ToLocalChecked()
+    ).ToLocalChecked());
 }
 #endif
+
+void timeoutCallbackCaller(v8::Isolate* isolate, void* data)
+{
+   timeoutCallback.Call(1, argv);
+}
 
 NAN_METHOD(clearTripwire)
 {
@@ -85,6 +95,21 @@ NAN_METHOD(setShouldThrowException)
     }
 }
 
+NAN_METHOD(setTimeoutCallback)
+{
+    Nan::EscapableHandleScope scope;
+
+     if(info.Length() == 0 || Nan::To<v8::Function>(info[0]).IsEmpty()) {
+        Nan::ThrowError("First agument must be a boolean.");
+        info.GetReturnValue().SetUndefined();
+    }
+    else {
+        hasTimeoutCallback = true;
+        const v8::Local<v8::Function> func = Nan::To<v8::Function>(info[0]).ToLocalChecked();
+        timeoutCallback.Reset(func);
+    }
+}
+
 NAN_MODULE_INIT(init) 
 {
     initCore();
@@ -103,6 +128,9 @@ NAN_MODULE_INIT(init)
     Nan::Set(target,
         Nan::New<v8::String>("setShouldThrowException").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setShouldThrowException)->GetFunction());
+    Nan::Set(target,
+        Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
+        Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
 }
 
 NODE_MODULE(tripwire, init);

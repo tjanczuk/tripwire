@@ -15,6 +15,9 @@ extern int terminated;
 extern v8::Isolate* isolate;
 
 extern bool shouldThrowException;
+extern bool hasTimeoutCallback;
+extern void timeoutCallbackCaller(v8::Isolate *isolate, void *data);
+
 
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 extern void interruptCallback(v8::Isolate *isolate, void *data);
@@ -101,6 +104,12 @@ void* tripwireWorker(void* data)
 				{
 					terminated = 1;
                     isolate->TerminateExecution();
+
+					if(hasTimeoutCallback)
+					{
+						isolate->RequestInterrupt(timeoutCallbackCaller, NULL);
+					}
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 					if(shouldThrowException)
 					{
