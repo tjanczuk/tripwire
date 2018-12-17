@@ -10,6 +10,7 @@ Nan::Persistent<v8::Value> context;
 int terminated;
 v8::Isolate* isolate;
 bool shouldThrowException = true;
+bool useRealTime = true;
 
 bool hasTimeoutCallback = false;
 v8::Local<v8::Value> argv[] {Nan::Null()};
@@ -95,12 +96,25 @@ NAN_METHOD(setShouldThrowException)
     }
 }
 
+NAN_METHOD(setUseRealTime)
+{
+    Nan::EscapableHandleScope scope;
+
+    if(info.Length() == 0 || Nan::To<v8::Boolean>(info[0]).IsEmpty()) {
+        Nan::ThrowError("First agument must be a boolean.");
+        info.GetReturnValue().SetUndefined();
+    }
+    else {
+        useRealTime = Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->BooleanValue();
+    }
+}
+
 NAN_METHOD(setTimeoutCallback)
 {
     Nan::EscapableHandleScope scope;
 
      if(info.Length() == 0 || Nan::To<v8::Function>(info[0]).IsEmpty()) {
-        Nan::ThrowError("First agument must be a boolean.");
+        Nan::ThrowError("First agument must be a function.");
         info.GetReturnValue().SetUndefined();
     }
     else {
@@ -134,10 +148,13 @@ NAN_MODULE_INIT(init)
         Nan::New<v8::String>("setShouldThrowException").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setShouldThrowException)->GetFunction());
     Nan::Set(target,
+        Nan::New<v8::String>("setUseRealTime").ToLocalChecked(),
+        Nan::New<v8::FunctionTemplate>(setUseRealTime)->GetFunction());setUseRealTime
+    Nan::Set(target,
         Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
 
-    node::AtExit(cleanUpFunction, NULL);
+    // node::AtExit(cleanUpFunction, NULL);
 }
 
 NODE_MODULE(tripwire, init);

@@ -1,4 +1,7 @@
+#include <iostream>
+
 #include <process.h>
+#include <sys/timeb.h>
 #include <stdbool.h>
 #include <node.h>
 #include <v8.h>
@@ -10,6 +13,7 @@ HANDLE event;
 
 extern unsigned int tripwireThreshold;
 extern int terminated;
+extern bool useRealTime;
 extern v8::Isolate* isolate;
 
 extern bool shouldThrowException;
@@ -25,6 +29,7 @@ void tripwireWorker(void* data)
 {
     BOOL skipTimeCapture = false;
     ULARGE_INTEGER startUserTime, startKernelTime, elapsedUserTime, elapsedKernelTime;
+    struct timeb startRealTime, elapsedRealTime;
     FILETIME tmp;
 
     DWORD elapsedMs = 0;
@@ -40,8 +45,10 @@ void tripwireWorker(void* data)
 
         if (skipTimeCapture)
             skipTimeCapture = false;
-        else
+        else {
             GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&startKernelTime.u, (LPFILETIME)&startUserTime.u);
+            ftime(&startRealTime);
+        }
 
         // Wait on the auto reset event. The event will be signalled in one of two cases:
         // 1. When the timeout value equal to tripwireThreshold elapses, or
@@ -71,13 +78,22 @@ void tripwireWorker(void* data)
             // necessarily mean that the node.js thread exceeded that execution time threshold. It might not
             // have been running at all in that period, subject to OS scheduling.
 
-            GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&elapsedKernelTime.u, (LPFILETIME)&elapsedUserTime.u);
-            ULONGLONG elapsed100Ns = elapsedKernelTime.QuadPart - startKernelTime.QuadPart + elapsedUserTime.QuadPart - startUserTime.QuadPart;
+            if(!useRealTime)
+            {
+                GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&elapsedKernelTime.u, (LPFILETIME)&elapsedUserTime.u);
+                ULONGLONG elapsed100Ns = elapsedKernelTime.QuadPart - startKernelTime.QuadPart + elapsedUserTime.QuadPart - startUserTime.QuadPart;
 
-            // Thread execution times are reported in 100ns units. Convert to milliseconds.
+                // Thread execution times are reported in 100ns units. Convert to milliseconds.
 
-            elapsedMs = elapsed100Ns / 10000;
+                elapsedMs = elapsed100Ns / 10000;
 
+            }
+            else 
+            {
+                std::cout << "Using real time" << std::endl;
+                ftime(&elapsedRealTime);
+                elapsedMs = (unsigned int)(1000.0 * (elapsedRealTime.time - startRealTime.time) + (elapsedRealTime.millitm - startRealTime.millitm));
+            }
             // If the actual CPU execution time of the node.js thread exceeded the threshold, terminate
             // the V8 process. Otherwise wait again while maintaining the current snapshot of the initial
             // time utilization. This mechanism results in termination of a runaway thread some time in the
