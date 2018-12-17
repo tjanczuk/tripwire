@@ -10,7 +10,7 @@ Nan::Persistent<v8::Value> context;
 int terminated;
 v8::Isolate* isolate;
 bool shouldThrowException = true;
-bool useRealTime = true;
+bool useRealTime = false;
 
 bool hasTimeoutCallback = false;
 v8::Local<v8::Value> argv[] {Nan::Null()};
