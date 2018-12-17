@@ -149,7 +149,7 @@ NAN_MODULE_INIT(init)
         Nan::New<v8::FunctionTemplate>(setShouldThrowException)->GetFunction());
     Nan::Set(target,
         Nan::New<v8::String>("setUseRealTime").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(setUseRealTime)->GetFunction());setUseRealTime
+        Nan::New<v8::FunctionTemplate>(setUseRealTime)->GetFunction());
     Nan::Set(target,
         Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
