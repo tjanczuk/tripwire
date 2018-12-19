@@ -154,7 +154,7 @@ NAN_MODULE_INIT(init)
         Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
         Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
 
-    // node::AtExit(cleanUpFunction, NULL);
+    node::AtExit(cleanUpFunction, NULL);
 }
 
 NODE_MODULE(tripwire, init);
