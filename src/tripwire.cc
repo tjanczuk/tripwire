@@ -92,7 +92,7 @@ NAN_METHOD(setShouldThrowException)
         info.GetReturnValue().SetUndefined();
     }
     else {
-        shouldThrowException = Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->BooleanValue();
+        shouldThrowException = Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->IsTrue();
     }
 }
 
@@ -105,7 +105,7 @@ NAN_METHOD(setUseRealTime)
         info.GetReturnValue().SetUndefined();
     }
     else {
-        useRealTime = Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->BooleanValue();
+        useRealTime = Nan::To<v8::Boolean>(info[0]).ToLocalChecked()->IsTrue();
     }
 }
 
@@ -133,26 +133,27 @@ NAN_MODULE_INIT(init)
 {
     initCore();
     isolate = v8::Isolate::GetCurrent();
+    v8::Local<v8::Context> context = v8::Context::New(isolate);
     terminated = 0;
     Nan::Set(target,
         Nan::New<v8::String>("resetTripwire").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(resetTripwire)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(resetTripwire)->GetFunction(context).ToLocalChecked());
     Nan::Set(target,
         Nan::New<v8::String>("clearTripwire").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(clearTripwire)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(clearTripwire)->GetFunction(context).ToLocalChecked());
     Nan::Set(target,
         Nan::New<v8::String>("getContext").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(getContext)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(getContext)->GetFunction(context).ToLocalChecked());
 
     Nan::Set(target,
         Nan::New<v8::String>("setShouldThrowException").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(setShouldThrowException)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(setShouldThrowException)->GetFunction(context).ToLocalChecked());
     Nan::Set(target,
         Nan::New<v8::String>("setUseRealTime").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(setUseRealTime)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(setUseRealTime)->GetFunction(context).ToLocalChecked());
     Nan::Set(target,
         Nan::New<v8::String>("setTimeoutCallback").ToLocalChecked(),
-        Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction());
+        Nan::New<v8::FunctionTemplate>(setTimeoutCallback)->GetFunction(context).ToLocalChecked());
 
     node::AtExit(cleanUpFunction, NULL);
 }

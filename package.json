@@ -25,7 +25,7 @@
   "dependencies": {
     "child_process": "^1.0.2",
     "deasync": "^0.1.14",
-    "nan": "^2.0.8"
+    "nan": "^2.14.0"
   },
   "repository": {
     "type": "git",
