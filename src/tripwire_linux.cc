@@ -13,6 +13,12 @@ pthread_cond_t tripwireCondition = PTHREAD_COND_INITIALIZER;
 extern unsigned int tripwireThreshold;
 extern int terminated;
 extern v8::Isolate* isolate;
+
+extern bool shouldThrowException;
+extern bool hasTimeoutCallback;
+extern void timeoutCallbackCaller(v8::Isolate *isolate, void *data);
+
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 extern void interruptCallback(v8::Isolate *isolate, void *data);
 #endif
@@ -24,6 +30,7 @@ void* tripwireWorker(void* data)
 	int skipTimeCapture = 0;
 	struct timespec timeout;
 	struct rusage start, end;
+    unsigned int elapsedMs = 0;
 
 	// This thread monitors the elapsed CPU utilization time of the node.js thread and forces V8 to terminate
 	// execution if it exceeds the preconfigured tripwireThreshold.
@@ -53,9 +60,10 @@ void* tripwireWorker(void* data)
 		}
 		else
 		{
+            unsigned int remainingTime = tripwireThreshold < elapsedMs ? 0 : tripwireThreshold - elapsedMs;
 			clock_gettime(CLOCK_REALTIME, &timeout);
-			timeout.tv_sec += tripwireThreshold / 1000;
-			timeout.tv_nsec += (tripwireThreshold % 1000) * 1000000;
+			timeout.tv_sec += remainingTime / 1000;
+			timeout.tv_nsec += (remainingTime % 1000) * 1000000;
 			waitResult = pthread_cond_timedwait(&tripwireCondition, &tripwireMutex, &timeout);
 		}
 		pthread_mutex_unlock(&tripwireMutex);
@@ -83,7 +91,7 @@ void* tripwireWorker(void* data)
 
 				// Process execution times are reported in seconds and microseconds. Convert to milliseconds.
 
-				unsigned int elapsedMs = 
+				elapsedMs = 
 					((end.ru_utime.tv_sec - start.ru_utime.tv_sec) + (end.ru_stime.tv_sec - start.ru_stime.tv_sec)) 
 					* 1000
 					+ ((end.ru_utime.tv_usec - start.ru_utime.tv_usec) + (end.ru_stime.tv_usec - start.ru_stime.tv_usec)) 
@@ -97,9 +105,18 @@ void* tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-                    v8::V8::TerminateExecution(isolate);
+                    isolate->TerminateExecution();
+
+					if(hasTimeoutCallback)
+					{
+						isolate->RequestInterrupt(timeoutCallbackCaller, NULL);
+					}
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
-                    isolate->RequestInterrupt(interruptCallback, NULL);
+					if(shouldThrowException)
+					{
+                    	isolate->RequestInterrupt(interruptCallback, NULL);
+					}
 #endif
 				}
 				else

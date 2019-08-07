@@ -7,20 +7,32 @@
   },
   "version": "4.2.0-pre",
   "description": "Break out from scripts blocking node.js event loop",
-  "tags" : ["event loop", "hang"],
+  "tags": [
+    "event loop",
+    "hang"
+  ],
   "main": "./lib/tripwire.js",
-  "engines": { "node": "0.10.x || 0.12.x || 4.x" },
-  "licenses": [ { "type": "Apache", "url": "http://www.apache.org/licenses/LICENSE-2.0" } ],
+  "engines": {
+    "node": "0.10.x || 0.12.x || 4.x"
+  },
+  "licenses": [
+    {
+      "type": "Apache",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
+  ],
   "homepage": "https://github.com/tjanczuk/tripwire",
   "dependencies": {
-    "nan": "^2.0.8"
+    "child_process": "^1.0.2",
+    "deasync": "^0.1.14",
+    "nan": "^2.14.0"
   },
   "repository": {
     "type": "git",
     "url": "git@github.com:tjanczuk/tripwire.git"
   },
-  "bugs" : {
-    "url" : "http://github.com/tjanczuk/tripwire/issues"
+  "bugs": {
+    "url": "http://github.com/tjanczuk/tripwire/issues"
   },
   "scripts": {
     "install": "node install.js"

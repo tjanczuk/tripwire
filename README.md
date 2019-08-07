@@ -7,6 +7,8 @@ Tripwire contains a native extension of node.js and currently supports Windows, 
 
 Install with:
 
+Make sure you've installed all the [necessary build tools](https://github.com/TooTallNate/node-gyp#installation) for your platform, then invoke:
+
 ```
 npm install tripwire
 ```

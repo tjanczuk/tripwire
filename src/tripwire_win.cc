@@ -1,4 +1,5 @@
 #include <process.h>
+#include <sys/timeb.h>
 #include <node.h>
 #include <v8.h>
 #include <nan.h>
@@ -9,7 +10,13 @@ HANDLE event;
 
 extern unsigned int tripwireThreshold;
 extern int terminated;
+extern bool useRealTime;
 extern v8::Isolate* isolate;
+
+extern bool shouldThrowException;
+extern bool hasTimeoutCallback;
+extern void timeoutCallbackCaller(v8::Isolate *isolate, void *data);
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
 extern void interruptCallback(v8::Isolate *isolate, void *data);
 #endif
@@ -19,7 +26,10 @@ void tripwireWorker(void* data)
 {
 	BOOL skipTimeCapture = FALSE;
 	ULARGE_INTEGER su, sk, eu, ek;
+    struct timeb startRealTime, elapsedRealTime;
 	FILETIME tmp;
+
+	DWORD elapsedMs = 0;
 
 	// This thread monitors the elapsed CPU utilization time of the node.js thread and forces V8 to terminate
 	// execution if it exceeds the preconfigured tripwireThreshold.
@@ -32,8 +42,10 @@ void tripwireWorker(void* data)
 
 		if (skipTimeCapture) 
 			skipTimeCapture = FALSE;
-		else 
+		else {
 			GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&sk.u, (LPFILETIME)&su.u);
+            ftime(&startRealTime);
+        }
 
 		// Wait on the auto reset event. The event will be signalled in one of two cases:
 		// 1. When the timeout value equal to tripwireThreshold elapses, or
@@ -42,7 +54,9 @@ void tripwireWorker(void* data)
 		// an inifite wait is initiated on the event (which will only be terminated with an explicit signal
 		// during subsequent call to resetThreashold).
 
-		if (WAIT_TIMEOUT == WaitForSingleObject(event, 0 == tripwireThreshold ? INFINITE : tripwireThreshold)) 
+		DWORD remainingTime = tripwireThreshold < elapsedMs ? 0 : tripwireThreshold - elapsedMs;
+		DWORD timeToSleep = tripwireThreshold == 0 ? INFINITE : remainingTime;
+		if (WAIT_TIMEOUT == WaitForSingleObject(event, timeToSleep )) 
 		{
 			// If the wait result on the event is WAIT_TIMEOUT, it means resetThreshold
 			// was called in the tripwireThreshold period since the last call to resetThreshold. This indicates
@@ -61,12 +75,20 @@ void tripwireWorker(void* data)
 				// necessarily mean that the node.js thread exceeded that execution time threshold. It might not
 				// have been running at all in that period, subject to OS scheduling. 
 
-				GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&ek.u, (LPFILETIME)&eu.u);
-				ULONGLONG elapsed100Ns = ek.QuadPart - sk.QuadPart + eu.QuadPart - su.QuadPart;
+                if(!useRealTime) 
+                {
+				    GetThreadTimes(scriptThread, &tmp, &tmp, (LPFILETIME)&ek.u, (LPFILETIME)&eu.u);
+				    ULONGLONG elapsed100Ns = ek.QuadPart - sk.QuadPart + eu.QuadPart - su.QuadPart;
 
-				// Thread execution times are reported in 100ns units. Convert to milliseconds.
+				    // Thread execution times are reported in 100ns units. Convert to milliseconds.
 
-				DWORD elapsedMs = elapsed100Ns / 10000;
+				    elapsedMs = elapsed100Ns / 10000;
+                }
+                else
+                {
+                    ftime(&elapsedRealTime);
+                    elapsedMs = (unsigned int)(1000.0 * (elapsedRealTime.time - startRealTime.time) + (elapsedRealTime.millitm - startRealTime.millitm));
+                }
 				
 				// If the actual CPU execution time of the node.js thread exceeded the threshold, terminate
 				// the V8 process. Otherwise wait again while maintaining the current snapshot of the initial
@@ -76,9 +98,18 @@ void tripwireWorker(void* data)
 				if (elapsedMs >= tripwireThreshold)
 				{
 					terminated = 1;
-                    v8::V8::TerminateExecution(isolate);
+                    isolate->TerminateExecution();
+
+					if(hasTimeoutCallback)
+					{
+						isolate->RequestInterrupt(timeoutCallbackCaller, NULL);
+					}
+
 #if (NODE_MODULE_VERSION >= NODE_0_12_MODULE_VERSION)
-                    isolate->RequestInterrupt(interruptCallback, NULL);
+					if(shouldThrowException)
+					{
+                    	isolate->RequestInterrupt(interruptCallback, NULL);
+					}
 #endif
 				}
 				else
